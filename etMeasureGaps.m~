@@ -1,0 +1,56 @@
+function [gaps, numGaps, propMissing] = etMeasureGaps(x, y, t)
+% gaps = ETMEASUREGAPS(x, y) measures the length of each gap (comprised of
+% samples of missing data) in eye tracking coordinates x and y. Missing
+% samples must be NaNs. 
+%
+% gaps = ETMEASUREGAPS(x, y, t) uses vector of timestamps t to return gap
+% metrics in the same units as t. If t is not specified, then units will
+% default to samples. 
+%
+% Version 0.1 20180130
+%   
+
+    % if no time units specified, use samples
+    if ~exist('t', 'var') || isempty(t)
+        t = 1:length(x);
+        if isrow(t) && ~isrow(x), t = t'; end
+        convertUnits = false;
+    else
+        convertUnits = true;
+    end
+    
+    % check input args
+    if ~isvector(x) || ~isnumeric(x) || ~isvector(y) || ~isnumeric(y) ||...
+            ~isvector(t) || ~isnumeric(t)
+        error('All inputs must be numeric vectors.')
+    end
+    
+    if ~isequal(size(x), size(y), size(t))
+        error('All inputs must be the same size and shape.')
+    end
+
+    % logical vector of missing data
+    missing = isnan(x) & isnan(y);
+    
+    % check that there is some missing data
+    if ~any(missing)
+        gaps = [];
+        return
+    end
+    
+    % find contiguous runs of missing data
+    ct = findcontig2(missing); 
+    
+    % convert to time units
+    if convertUnits
+        ct(:, 2) = ct(:, 2) + 1;
+        ct = t(ct);
+        ct(:, 3) = ct(:, 2) - ct(:, 1);
+    end
+    
+    % metrics
+    gaps = ct(:, 3);
+    numGaps = size(ct, 1);
+    propMissing = sum(missing) / length(missing);
+    
+end
